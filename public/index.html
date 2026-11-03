@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#6d5efc" />
+    <meta name="description" content="A todo list that emails you before deadlines." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Todos" />
+    <title>Todos — deadline reminders</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236d5efc'/%3E%3Cpath d='M18 33l10 10 18-20' stroke='white' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path
+                d="M5 13l4.5 4.5L19 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1>My Tasks</h1>
+            <p id="subtitle">Loading…</p>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="icon-btn" id="refresh-btn" type="button" title="Check reminders now" aria-label="Check reminders now">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+              <path
+                d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button class="icon-btn" id="settings-btn" type="button" title="Settings" aria-label="Settings">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.9" />
+              <path
+                d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06A2 2 0 1 1 4.14 16.9l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.8a1.7 1.7 0 0 0-.34-1.87l-.06-.06A2 2 0 1 1 7.1 4.04l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.47z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="Overview">
+        <div class="stat stat--soon">
+          <span class="stat-value" id="stat-soon">0</span>
+          <span class="stat-label">Due soon</span>
+        </div>
+        <div class="stat stat--overdue">
+          <span class="stat-value" id="stat-overdue">0</span>
+          <span class="stat-label">Overdue</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-open">0</span>
+          <span class="stat-label">Open</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-done">0</span>
+          <span class="stat-label">Done</span>
+        </div>
+      </section>
+
+      <nav class="filters" id="filters" role="tablist" aria-label="Filter tasks">
+        <button class="filter is-active" data-filter="open" role="tab" aria-selected="true">Open</button>
+        <button class="filter" data-filter="soon" role="tab" aria-selected="false">Due soon</button>
+        <button class="filter" data-filter="today" role="tab" aria-selected="false">Today</button>
+        <button class="filter" data-filter="done" role="tab" aria-selected="false">Done</button>
+        <button class="filter" data-filter="all" role="tab" aria-selected="false">All</button>
+      </nav>
+
+      <main class="list-wrap">
+        <ul class="task-list" id="task-list"></ul>
+        <div class="empty" id="empty" hidden>
+          <div class="empty-icon" aria-hidden="true">🗒️</div>
+          <p class="empty-title" id="empty-title">Nothing here</p>
+          <p class="empty-text" id="empty-text">Tap the + button to add your first task.</p>
+        </div>
+      </main>
+
+      <footer class="status" id="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Checking reminder settings…</span>
+      </footer>
+
+      <p class="credit">Developed by <strong>Walid El Bacha</strong></p>
+    </div>
+
+    <button class="fab" id="add-btn" type="button" aria-label="Add task">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+      </svg>
+    </button>
+
+    <!-- ------------------------------ task dialog ------------------------------ -->
+    <dialog class="dialog" id="task-dialog">
+      <form id="task-form" novalidate>
+        <header class="dialog-head">
+          <h2 id="task-dialog-title">New task</h2>
+          <button class="icon-btn subtle" type="button" data-close-dialog="task-dialog" aria-label="Close">✕</button>
+        </header>
+
+        <div class="dialog-body">
+          <label class="field">
+            <span class="field-label">What needs doing?</span>
+            <input id="task-title" name="title" type="text" placeholder="e.g. Pay the electricity bill" maxlength="200" required autocomplete="off" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Deadline</span>
+            <input id="task-due" name="due" type="datetime-local" />
+            <span class="field-hint">You'll be emailed 2 days before this time.</span>
+          </label>
+
+          <div class="field">
+            <span class="field-label">Priority</span>
+            <div class="segmented" id="priority-group" role="radiogroup" aria-label="Priority">
+              <button type="button" class="seg" data-priority="low" role="radio" aria-checked="false">Low</button>
+              <button type="button" class="seg is-active" data-priority="normal" role="radio" aria-checked="true">Normal</button>
+              <button type="button" class="seg" data-priority="high" role="radio" aria-checked="false">High</button>
+            </div>
+          </div>
+
+          <label class="field">
+            <span class="field-label">Notes <span class="field-optional">optional</span></span>
+            <textarea id="task-notes" name="notes" rows="3" maxlength="2000" placeholder="Anything you want to remember…"></textarea>
+          </label>
+        </div>
+
+        <footer class="dialog-foot">
+          <button class="btn ghost danger" type="button" id="task-delete" hidden>Delete</button>
+          <div class="spacer"></div>
+          <button class="btn ghost" type="button" data-close-dialog="task-dialog">Cancel</button>
+          <button class="btn primary" type="submit" id="task-save">Save task</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- ---------------------------- settings dialog ---------------------------- -->
+    <dialog class="dialog" id="settings-dialog">
+      <form id="settings-form" novalidate>
+        <header class="dialog-head">
+          <h2>Reminders</h2>
+          <button class="icon-btn subtle" type="button" data-close-dialog="settings-dialog" aria-label="Close">✕</button>
+        </header>
+
+        <div class="dialog-body">
+          <label class="field">
+            <span class="field-label">Send reminders to</span>
+            <input id="set-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+
+          <div class="field">
+            <span class="field-label">Remind me before the deadline</span>
+            <div class="lead-grid">
+              <input id="set-lead" type="number" min="0" step="0.5" inputmode="decimal" />
+              <select id="set-lead-unit" aria-label="Reminder delay unit">
+                <option value="hours">hours</option>
+                <option value="days">days</option>
+              </select>
+            </div>
+            <span class="field-hint">
+              Default is 2 days (48 hours). Short deadlines work too — try 6 hours, or 1.5 days.
+              Each task gets one reminder per deadline.
+            </span>
+          </div>
+
+          <label class="checkbox">
+            <input type="checkbox" id="set-overdue" />
+            <span>Also remind me about overdue tasks</span>
+          </label>
+
+          <div class="field">
+            <span class="field-label">Delivery method</span>
+            <div class="transport-list" id="transport-group" role="radiogroup" aria-label="Delivery method">
+              <button type="button" class="transport" data-transport="web3forms" role="radio" aria-checked="true">
+                <span class="transport-name">No password <span class="pill">easiest</span></span>
+                <span class="transport-desc">
+                  Get a free access key at web3forms.com (just your email), paste it below, and reminders arrive automatically.
+                </span>
+              </button>
+              <button type="button" class="transport" data-transport="smtp" role="radio" aria-checked="false">
+                <span class="transport-name">My own mailbox (SMTP)</span>
+                <span class="transport-desc">
+                  Sent directly from your email account. Needs an app password, but nothing is shared with a third party.
+                </span>
+              </button>
+              <button type="button" class="transport" data-transport="outbox" role="radio" aria-checked="false">
+                <span class="transport-name">Save emails to a folder</span>
+                <span class="transport-desc">
+                  No internet needed. Reminder emails are written as .eml files you can open and send yourself.
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="smtp-box" id="w3f-box" hidden>
+            <label class="field">
+              <span class="field-label">Web3Forms access key</span>
+              <input
+                id="set-w3f-key"
+                type="text"
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <span class="field-hint">
+                Free key: <a href="https://web3forms.com/" target="_blank" rel="noopener">web3forms.com</a> → enter your
+                email → paste the key they send you. Use the same address in “Send reminders to” above.
+              </span>
+            </label>
+          </div>
+
+          <div class="smtp-box" id="smtp-box" hidden>
+            <div class="smtp-grid">
+              <label class="field">
+                <span class="field-label">SMTP host</span>
+                <input id="set-smtp-host" type="text" placeholder="smtp.gmail.com" />
+              </label>
+              <label class="field narrow">
+                <span class="field-label">Port</span>
+                <input id="set-smtp-port" type="number" min="1" max="65535" />
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">Username</span>
+              <input id="set-smtp-user" type="text" placeholder="you@gmail.com" autocomplete="username" />
+            </label>
+            <label class="field">
+              <span class="field-label">App password</span>
+              <input id="set-smtp-pass" type="password" placeholder="Leave empty to keep the saved one" autocomplete="new-password" />
+              <span class="field-hint">Gmail: myaccount.google.com → Security → App passwords.</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="set-smtp-secure" />
+              <span>Use SSL/TLS (port 465). Uncheck for STARTTLS on port 587.</span>
+            </label>
+          </div>
+
+          <p class="settings-note" id="settings-note" hidden></p>
+        </div>
+
+        <footer class="dialog-foot">
+          <button class="btn ghost" type="button" id="test-email-btn">Send test email</button>
+          <div class="spacer"></div>
+          <button class="btn primary" type="submit" id="settings-save">Save</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

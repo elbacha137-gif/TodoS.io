@@ -1,0 +1,16 @@
+{
+  "name": "todos-io",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Responsive todo web app that emails you before a deadline — soon, in hours or days.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node scripts/check-reminders.js",
+    "task:install": "powershell -ExecutionPolicy Bypass -File scripts/setup-task.ps1",
+    "task:remove": "powershell -ExecutionPolicy Bypass -File scripts/remove-task.ps1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

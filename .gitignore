@@ -1,0 +1,11 @@
+# Live data — never commit: tasks, email address, Web3Forms key, SMTP password
+data/
+
+# Dependencies
+node_modules/
+
+# Logs and editor/OS noise
+*.log
+.DS_Store
+Thumbs.db
+.env
