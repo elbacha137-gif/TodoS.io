@@ -9,8 +9,9 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   todos: [],
-  settings: { leadHours: 48, transport: 'web3forms', email: '', smtp: {} },
+  settings: { leadHours: 48, transport: 'web3forms', email: '', smtp: {}, hasWeb3FormsKey: false },
   meta: {},
+  locked: false,
 };
 
 let activeFilter = 'open';
@@ -34,7 +35,11 @@ async function api(path, options = {}) {
   } catch {
     /* empty body */
   }
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (!res.ok) {
+    const error = new Error(data.error || `Request failed (${res.status})`);
+    error.status = res.status;
+    throw error;
+  }
   return data;
 }
 
@@ -119,6 +124,89 @@ function isToday(iso) {
   const d = new Date(iso);
   const n = new Date();
   return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
+/* ------------------------------ lock screen ----------------------------- */
+
+let lockMode = 'login'; // 'login' | 'register'
+
+function showLock(mode = 'login') {
+  state.locked = true;
+  lockMode = mode;
+
+  $('lock-screen').hidden = false;
+  $('lock-title').textContent = mode === 'register' ? 'Create your account' : 'Sign in';
+  $('lock-sub').textContent =
+    mode === 'register'
+      ? 'Use your email and a password. Reminders will go to that email.'
+      : 'Sign in to your account.';
+  $('lock-confirm-field').hidden = mode !== 'register';
+  $('lock-submit').textContent = mode === 'register' ? 'Create account' : 'Sign in';
+  $('lock-hint').hidden = mode !== 'register';
+  $('lock-toggle-btn').textContent =
+    mode === 'register' ? 'I already have an account' : 'Create an account instead';
+  $('lock-error').hidden = true;
+  $('lock-form').reset();
+
+  setTimeout(() => $('lock-email').focus(), 80);
+}
+
+function hideLock() {
+  state.locked = false;
+  $('lock-screen').hidden = true;
+}
+
+async function submitLock(event) {
+  event.preventDefault();
+
+  const errorNode = $('lock-error');
+  const fail = (message) => {
+    errorNode.textContent = message;
+    errorNode.hidden = false;
+  };
+  errorNode.hidden = true;
+
+  const email = $('lock-email').value.trim();
+  const password = $('lock-password').value;
+
+  if (!email) {
+    fail('Enter your email address.');
+    return;
+  }
+  if (password.length < 8) {
+    fail('Use at least 8 characters.');
+    return;
+  }
+  if (lockMode === 'register' && password !== $('lock-confirm').value) {
+    fail('The two passwords do not match.');
+    return;
+  }
+
+  const button = $('lock-submit');
+  button.disabled = true;
+  try {
+    const data = await api(lockMode === 'register' ? '/api/register' : '/api/login', {
+      method: 'POST',
+      body: { email, password },
+    });
+    const wasRegister = lockMode === 'register';
+    hideLock();
+    if (data.user) state.user = data.user;
+    if (data.state) {
+      state.todos = data.state.todos;
+      state.settings = data.state.settings;
+      state.meta = data.state.meta;
+      render();
+    } else {
+      await refresh();
+    }
+    toast(wasRegister ? 'Account created — welcome!' : 'Welcome back.', 'success');
+  } catch (err) {
+    fail(err.message);
+    $('lock-password').select();
+  } finally {
+    button.disabled = false;
+  }
 }
 
 /* ------------------------------- rendering ------------------------------ */
@@ -334,6 +422,10 @@ async function refresh(showError = false) {
     state.meta = data.meta;
     render();
   } catch (err) {
+    if (err.status === 401) {
+      showLock(false);
+      return;
+    }
     if (showError) toast(err.message, 'error');
   }
 }
@@ -470,8 +562,12 @@ function openSettings() {
   syncLeadUnit();
   $('set-overdue').checked = s.sendOverdue !== false;
   setTransport(s.transport || 'web3forms');
+  $('set-account-email').textContent = s.email || state.user?.email || '—';
 
-  $('set-w3f-key').value = s.web3formsKey || '';
+  $('set-w3f-key').value = '';
+  $('set-w3f-key').placeholder = s.hasWeb3FormsKey
+    ? 'Saved — leave blank to keep it'
+    : 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
 
   $('set-smtp-host').value = s.smtp?.host || '';
   $('set-smtp-port').value = s.smtp?.port || 465;
@@ -480,7 +576,7 @@ function openSettings() {
   $('set-smtp-secure').checked = s.smtp?.secure !== false;
 
   const note = $('settings-note');
-  if (s.transport === 'web3forms' && s.email && !s.web3formsKey) {
+  if (s.transport === 'web3forms' && s.email && !s.hasWeb3FormsKey) {
     note.hidden = false;
     note.textContent =
       'Almost there: web3forms.com gives you a free access key by email in a few seconds. Paste it above, then press “Send test email”.';
@@ -492,9 +588,8 @@ function openSettings() {
 }
 
 function collectSettingsForm() {
-  return {
+  const payload = {
     email: $('set-email').value.trim(),
-    web3formsKey: $('set-w3f-key').value.trim(),
     leadHours: (Number($('set-lead').value) || 0) * ($('set-lead-unit').value === 'days' ? 24 : 1),
     sendOverdue: $('set-overdue').checked,
     transport: currentTransport(),
@@ -506,6 +601,12 @@ function collectSettingsForm() {
       pass: $('set-smtp-pass').value,
     },
   };
+
+  // The saved key is never sent to the browser; only a new one is uploaded.
+  const key = $('set-w3f-key').value.trim();
+  if (key) payload.web3formsKey = key;
+
+  return payload;
 }
 
 async function saveSettings(event) {
@@ -523,7 +624,7 @@ async function saveSettings(event) {
     throw new Error('incomplete smtp');
   }
 
-  if (payload.transport === 'web3forms' && !payload.web3formsKey) {
+  if (payload.transport === 'web3forms' && !payload.web3formsKey && !state.settings.hasWeb3FormsKey) {
     toast('Paste your free Web3Forms access key (web3forms.com) — or choose another delivery method.', 'error');
     throw new Error('missing key');
   }
@@ -581,6 +682,17 @@ async function sendTestEmail() {
 /* -------------------------------- wiring -------------------------------- */
 
 function wire() {
+  $('lock-form').addEventListener('submit', submitLock);
+  $('lock-toggle-btn').addEventListener('click', () => showLock(lockMode === 'register' ? 'login' : 'register'));
+  $('logout-btn').addEventListener('click', async () => {
+    try {
+      await api('/api/logout', { method: 'POST' });
+    } catch {
+      /* already signed out */
+    }
+    window.location.reload();
+  });
+
   $('add-btn').addEventListener('click', () => openTaskDialog());
   $('settings-btn').addEventListener('click', openSettings);
   $('set-lead-unit').addEventListener('change', onLeadUnitChange);
@@ -668,6 +780,7 @@ function wire() {
 
   // Keep several devices (phone + PC) in sync.
   setInterval(() => {
+    if (state.locked) return;
     if (document.hidden) return;
     if (document.querySelector('dialog[open]')) return;
     refresh();
@@ -678,5 +791,20 @@ function wire() {
   });
 }
 
-wire();
-refresh(true);
+async function boot() {
+  wire();
+  try {
+    const session = await api('/api/session');
+    if (!session.authenticated) {
+      showLock(session.needsSetup ? 'register' : 'login');
+      return;
+    }
+    state.user = session.user || null;
+    hideLock();
+    await refresh(true);
+  } catch (err) {
+    showLock(false);
+  }
+}
+
+boot();

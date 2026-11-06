@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const store = require('./lib/store');
+const auth = require('./lib/auth');
 const { runReminderCheck } = require('./lib/reminders');
 const mailer = require('./lib/mailer');
 const { listIps, primaryIp } = require('./lib/net');
@@ -61,6 +62,54 @@ function readBody(req, limit = 1_000_000) {
   });
 }
 
+/* ----------------------------- access control ---------------------------- */
+
+const SESSION_COOKIE = 'todo_session';
+const MAX_LOGIN_FAILURES = 8;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const loginFailures = new Map(); // ip -> { count, resetAt }
+
+function sessionToken(req) {
+  return auth.parseCookies(req.headers.cookie || '')[SESSION_COOKIE] || '';
+}
+
+function clientIp(req) {
+  const forwarded = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || '')
+    .split(',')[0]
+    .trim();
+  return forwarded || req.socket.remoteAddress || 'unknown';
+}
+
+function tooManyFailures(ip) {
+  const record = loginFailures.get(ip);
+  if (!record || record.resetAt < Date.now()) return false;
+  return record.count >= MAX_LOGIN_FAILURES;
+}
+
+function countFailure(ip) {
+  const now = Date.now();
+  const record = loginFailures.get(ip);
+  if (!record || record.resetAt < now) loginFailures.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+  else record.count += 1;
+}
+
+function sessionCookie(req, token, maxAgeSeconds) {
+  const parts = [
+    `${SESSION_COOKIE}=${token}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/',
+    `Max-Age=${maxAgeSeconds}`,
+  ];
+  const https =
+    req.socket.encrypted ||
+    String(req.headers['x-forwarded-proto'] || '')
+      .split(',')[0]
+      .trim() === 'https';
+  if (https) parts.push('Secure');
+  return parts.join('; ');
+}
+
 function serveStatic(req, res, pathname) {
   const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const file = path.join(PUBLIC_DIR, rel);
@@ -84,12 +133,14 @@ function serveStatic(req, res, pathname) {
   });
 }
 
-function snapshot() {
-  const settings = store.publicSettings();
-  const todoList = store.getTodos();
+function snapshot(userId) {
+  const settings = store.publicSettings(userId);
+  const todoList = store.getTodos(userId);
+  const user = store.findUserById(userId);
   return {
     todos: todoList,
     settings,
+    user: user ? { id: user.id, email: user.email } : null,
     meta: {
       now: new Date().toISOString(),
       leadHours: settings.leadHours,
@@ -97,10 +148,9 @@ function snapshot() {
       transport: settings.transport,
       remindersReady:
         settings.transport === 'outbox' ||
-        (settings.transport === 'web3forms' && Boolean(settings.web3formsKey)) ||
-        (settings.transport === 'smtp' && Boolean(settings.smtp.user && settings.smtp.hasPassword)) ||
-        settings.transport === 'formsubmit',
-      log: store.getLog().slice(0, 8),
+        (settings.transport === 'web3forms' && Boolean(settings.hasWeb3FormsKey)) ||
+        (settings.transport === 'smtp' && Boolean(settings.smtp.user && settings.smtp.hasPassword)),
+      log: store.getLog(userId).slice(0, 8),
       dataDir: store.DATA_DIR,
     },
   };
@@ -113,8 +163,84 @@ async function handleApi(req, res, url) {
   const method = req.method || 'GET';
   const parts = pathname.split('/').filter(Boolean); // ['api', ...]
 
+  /* ---------------------------- sign-in gate ---------------------------- */
+
+  function userIdOf(req) {
+    return auth.isValidSession(sessionToken(req));
+  }
+
+  if (pathname === '/api/session' && method === 'GET') {
+    const userId = userIdOf(req);
+    const user = userId ? store.findUserById(userId) : null;
+    return json(res, 200, {
+      authenticated: Boolean(userId),
+      user: user ? { id: user.id, email: user.email } : null,
+      needsSetup: store.getUsers().length === 0,
+    });
+  }
+
+  if (pathname === '/api/register' && method === 'POST') {
+    const ip = clientIp(req);
+    if (tooManyFailures(ip)) {
+      return json(res, 429, { error: 'Too many attempts. Wait a few minutes and try again.' });
+    }
+
+    const body = await readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json(res, 400, { error: 'Enter a valid email address.' });
+    }
+    if (password.length < 8) {
+      return json(res, 400, { error: 'Use at least 8 characters for the password.' });
+    }
+    if (store.findUserByEmail(email)) {
+      countFailure(ip);
+      return json(res, 409, { error: 'An account with that email already exists.' });
+    }
+
+    loginFailures.delete(ip);
+    const user = store.createUser(email, auth.hashPassword(password));
+    const token = auth.createSession(user.id);
+    res.setHeader('Set-Cookie', sessionCookie(req, token, auth.SESSION_TTL_MS / 1000));
+    return json(res, 200, { ok: true, user: { id: user.id, email: user.email }, state: snapshot(user.id) });
+  }
+
+  if (pathname === '/api/login' && method === 'POST') {
+    const ip = clientIp(req);
+    if (tooManyFailures(ip)) {
+      return json(res, 429, { error: 'Too many attempts. Wait a few minutes and try again.' });
+    }
+
+    const body = await readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+
+    const user = store.findUserByEmail(email);
+    if (!user || !auth.verifyPassword(password, user.passwordHash)) {
+      countFailure(ip);
+      return json(res, 401, { error: 'Wrong email or password.' });
+    }
+
+    loginFailures.delete(ip);
+    const token = auth.createSession(user.id);
+    res.setHeader('Set-Cookie', sessionCookie(req, token, auth.SESSION_TTL_MS / 1000));
+    return json(res, 200, { ok: true, user: { id: user.id, email: user.email }, state: snapshot(user.id) });
+  }
+
+  if (pathname === '/api/logout' && method === 'POST') {
+    auth.destroySession(sessionToken(req));
+    res.setHeader('Set-Cookie', sessionCookie(req, '', 0));
+    return json(res, 200, { ok: true });
+  }
+
+  // Everything below is private.
+  const userId = userIdOf(req);
+  if (!userId) return json(res, 401, { error: 'Not signed in.' });
+
   if (pathname === '/api/state' && method === 'GET') {
-    return json(res, 200, snapshot());
+    return json(res, 200, snapshot(userId));
   }
 
   if (pathname === '/api/todos' && method === 'POST') {
@@ -122,8 +248,8 @@ async function handleApi(req, res, url) {
     if (!body.title || !String(body.title).trim()) {
       return json(res, 400, { error: 'A title is required.' });
     }
-    const todo = store.addTodo(body);
-    return json(res, 201, { todo, state: snapshot() });
+    const todo = store.addTodo(userId, body);
+    return json(res, 201, { todo, state: snapshot(userId) });
   }
 
   if (parts[1] === 'todos' && parts[2]) {
@@ -131,15 +257,15 @@ async function handleApi(req, res, url) {
 
     if (method === 'PATCH' || method === 'PUT') {
       const body = await readBody(req);
-      const todo = store.updateTodo(id, body);
+      const todo = store.updateTodo(userId, id, body);
       if (!todo) return json(res, 404, { error: 'Task not found.' });
-      return json(res, 200, { todo, state: snapshot() });
+      return json(res, 200, { todo, state: snapshot(userId) });
     }
 
     if (method === 'DELETE') {
-      const removed = store.deleteTodo(id);
+      const removed = store.deleteTodo(userId, id);
       if (!removed) return json(res, 404, { error: 'Task not found.' });
-      return json(res, 200, { ok: true, state: snapshot() });
+      return json(res, 200, { ok: true, state: snapshot(userId) });
     }
   }
 
@@ -149,29 +275,30 @@ async function handleApi(req, res, url) {
 
     if (patch.smtp) {
       const smtp = { ...patch.smtp };
-      // An empty password field means "keep the saved one".
       if (!smtp.pass) delete smtp.pass;
       smtp.port = Number(smtp.port) || 465;
       smtp.secure = Boolean(smtp.secure);
       patch.smtp = smtp;
     }
 
-    if (patch.email) patch.email = String(patch.email).trim();
-    const saved = store.saveSettings(patch);
-    return json(res, 200, { settings: store.publicSettings(), savedHasPassword: Boolean(saved.smtp.pass), state: snapshot() });
+    const saved = store.saveSettings(userId, patch);
+    return json(res, 200, { settings: store.publicSettings(userId), savedHasPassword: Boolean(saved.smtp.pass), state: snapshot(userId) });
   }
 
   if (pathname === '/api/check-now' && method === 'POST') {
     const result = await runReminderCheck();
-    return json(res, 200, { result, state: snapshot() });
+    return json(res, 200, { result, state: snapshot(userId) });
   }
 
   if (pathname === '/api/test-email' && method === 'POST') {
-    const settings = store.getSettings();
+    const settings = store.getSettings(userId);
+    const user = store.findUserById(userId);
+    if (!user) return json(res, 400, { error: 'Account not found.' });
+    settings.email = user.email;
     if (!settings.email) return json(res, 400, { error: 'Add your email address first.' });
     const result = await mailer.sendTest(settings);
-    store.appendLog({ kind: 'test', ok: result.ok, transport: result.transport, detail: result.detail, tasks: [] });
-    return json(res, 200, { result, state: snapshot() });
+    store.appendLog(userId, { kind: 'test', ok: result.ok, transport: result.transport, detail: result.detail, tasks: [] });
+    return json(res, 200, { result, state: snapshot(userId) });
   }
 
   return json(res, 404, { error: `Unknown API route: ${method} ${pathname}` });
@@ -240,9 +367,11 @@ server.listen(PORT, HOST, () => {
       console.log(`  [i] Main network address seems to be ${ip}.\n`);
     }
   });
-  const settings = store.getSettings();
-  if (!settings.email) {
-    console.log('  [!] No email address yet - open the app and click the gear to set it up.\n');
+  const users = store.getUsers();
+  if (!users.length) {
+    console.log('  [!] No accounts yet - open the app to create the first one.\n');
+  } else {
+    console.log(`  [i] ${users.length} account(s) registered.\n`);
   }
   setTimeout(() => backgroundCheck('startup'), 4000);
   setInterval(() => backgroundCheck('interval'), CHECK_EVERY);

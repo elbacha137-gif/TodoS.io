@@ -15,6 +15,37 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div class="lock-screen" id="lock-screen" hidden>
+      <form class="lock-card" id="lock-form" novalidate>
+        <div class="lock-logo" aria-hidden="true">✓</div>
+        <h2 id="lock-title">TodoS.io</h2>
+        <p class="lock-sub" id="lock-sub">Sign in to your account, or create a new one.</p>
+
+        <label class="field" id="lock-email-field">
+          <span class="field-label">Email</span>
+          <input id="lock-email" type="email" autocomplete="username" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input id="lock-password" type="password" autocomplete="current-password" />
+        </label>
+
+        <label class="field" id="lock-confirm-field" hidden>
+          <span class="field-label">Confirm password</span>
+          <input id="lock-confirm" type="password" autocomplete="new-password" />
+        </label>
+
+        <p class="lock-error" id="lock-error" hidden></p>
+        <button class="btn primary lock-btn" type="submit" id="lock-submit">Sign in</button>
+
+        <p class="lock-toggle">
+          <button type="button" class="link-btn" id="lock-toggle-btn">Create an account instead</button>
+        </p>
+        <p class="lock-hint" id="lock-hint" hidden>Use at least 8 characters.</p>
+      </form>
+    </div>
+
     <div class="app">
       <header class="topbar">
         <div class="brand">
@@ -168,10 +199,11 @@
         </header>
 
         <div class="dialog-body">
-          <label class="field">
-            <span class="field-label">Send reminders to</span>
-            <input id="set-email" type="email" placeholder="you@example.com" autocomplete="email" />
-          </label>
+          <div class="field">
+            <span class="field-label">Account (receives reminders)</span>
+            <div class="account-email" id="set-account-email">—</div>
+            <span class="field-hint">Reminders go to the email you signed up with.</span>
+          </div>
 
           <div class="field">
             <span class="field-label">Remind me before the deadline</span>
@@ -265,6 +297,7 @@
 
         <footer class="dialog-foot">
           <button class="btn ghost" type="button" id="test-email-btn">Send test email</button>
+          <button class="btn ghost" type="button" id="logout-btn">Sign out</button>
           <div class="spacer"></div>
           <button class="btn primary" type="submit" id="settings-save">Save</button>
         </footer>

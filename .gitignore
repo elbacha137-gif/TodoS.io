@@ -4,8 +4,14 @@ data/
 # Dependencies
 node_modules/
 
+# Cloudflare tunnel binary (52 MB, download it locally)
+bin/
+
 # Logs and editor/OS noise
 *.log
 .DS_Store
 Thumbs.db
 .env
+
+# Local backups (contain secrets)
+data-backup-20261106-124245/

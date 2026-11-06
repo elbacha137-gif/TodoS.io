@@ -919,6 +919,109 @@ textarea::placeholder {
   line-height: 1.45;
 }
 
+/* ----------------------------- lock screen ------------------------------ */
+
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: var(--bg-glow), var(--bg);
+}
+
+.lock-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+}
+
+.lock-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.lock-card h2 {
+  margin: 2px 0 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.lock-sub {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.lock-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: #b42323;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.lock-btn {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.lock-hint {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.lock-toggle {
+  margin: 0;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  color: var(--brand);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 600;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.account-email {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 0.95rem;
+  word-break: break-all;
+}
+
 /* -------------------------------- toast -------------------------------- */
 
 .toast {

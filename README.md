@@ -4,6 +4,8 @@ A todo list that works in your browser on **PC and phone**, and emails you
 before a deadline — **2 days by default**, configurable in hours or days.
 
 No frameworks, no build step, no npm install — just Node.js and a folder of JSON files.
+Every person who uses the site gets their own account, their own task list and their
+own reminder settings; the Windows scheduler emails each of them independently.
 
 ```
 TodoS.io/
@@ -114,7 +116,24 @@ Back up the `data` folder and you keep everything.
 
 ---
 
-## Troubleshooting
+## Share it on the internet
+
+The app runs on your PC. To let someone use it from anywhere:
+
+1. Double-click **`start-public.bat`**. It starts the server (if needed) and opens a
+   free Cloudflare tunnel.
+2. A public `https://…trycloudflare.com` address is printed and copied to your
+   clipboard. Anyone with that link and a password can use the site.
+3. Keep both black windows open. Closing them takes the link down; running
+   `start-public.bat` again prints a new address.
+
+For a **permanent address** (your own domain), set up a named Cloudflare tunnel and
+put the domain in `settings → appUrl` (or let `scripts/public.js` do it).
+
+Every visitor creates their own account; tasks and email settings are kept separate
+and the scheduler emails each account on its own.
+
+---
 
 **Nothing arrives.**
 1. Open the app and click **↻** — the toast tells you exactly what happened.
