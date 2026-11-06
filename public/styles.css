@@ -1025,69 +1025,69 @@ textarea::placeholder {
 /* ------------------------------- themes --------------------------------- */
 
 html[data-theme='theme1'] {
-  --bg: #fff3e5;
-  --bg-glow: radial-gradient(1100px 600px at 100% -10%, #f3d9c0 0%, transparent 60%),
-    radial-gradient(900px 500px at -10% 0%, #f7e6d4 0%, transparent 55%);
+  --bg: #ecfeff;
+  --bg-glow: radial-gradient(1100px 600px at 100% -10%, #a5f3fc 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, #cffafe 0%, transparent 55%);
   --surface: #ffffff;
-  --surface-2: #f7ecdd;
-  --surface-3: #efe0cc;
-  --text: #2a1424;
-  --text-soft: #6b4a5e;
-  --text-faint: #9a7a8e;
-  --line: #e8d4bc;
-  --brand: #371931;
-  --brand-2: #5a2a4a;
-  --brand-soft: #f0e0d8;
-  --danger: #b42323;
-  --danger-soft: #fdecea;
-  --warn: #9a6b1f;
-  --warn-soft: #fdf1dd;
-  --ok: #2f6b45;
-  --ok-soft: #e6f2ea;
+  --surface-2: #cffafe;
+  --surface-3: #a5f3fc;
+  --text: #164e63;
+  --text-soft: #0e7490;
+  --text-faint: #22d3ee;
+  --line: #a5f3fc;
+  --brand: #0891b2;
+  --brand-2: #06b6d4;
+  --brand-soft: #cffafe;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --ok: #059669;
+  --ok-soft: #d1fae5;
 }
 
 html[data-theme='theme2'] {
-  --bg: #ddc5a3;
-  --bg-glow: radial-gradient(1100px 600px at 100% -10%, #c9ad87 0%, transparent 60%),
-    radial-gradient(900px 500px at -10% 0%, #e4cfb0 0%, transparent 55%);
-  --surface: #f5ead7;
-  --surface-2: #ecddc4;
-  --surface-3: #e2d1b2;
-  --text: #2a1f1a;
-  --text-soft: #5a4638;
-  --text-faint: #8a7562;
-  --line: #c9b38f;
-  --brand: #342721;
-  --brand-2: #5a4438;
-  --brand-soft: #e8d9c2;
-  --danger: #9c2f2f;
-  --danger-soft: #f5dede;
-  --warn: #8a6a1f;
-  --warn-soft: #f3e8cc;
-  --ok: #3a6b3a;
-  --ok-soft: #e4efe4;
+  --bg: #ecfdf5;
+  --bg-glow: radial-gradient(1100px 600px at 100% -10%, #a7f3d0 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, #d1fae5 0%, transparent 55%);
+  --surface: #ffffff;
+  --surface-2: #d1fae5;
+  --surface-3: #a7f3d0;
+  --text: #064e3b;
+  --text-soft: #047857;
+  --text-faint: #34d399;
+  --line: #a7f3d0;
+  --brand: #059669;
+  --brand-2: #10b981;
+  --brand-soft: #d1fae5;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --ok: #059669;
+  --ok-soft: #d1fae5;
 }
 
 html[data-theme='theme3'] {
-  --bg: #ede8e4;
-  --bg-glow: radial-gradient(1100px 600px at 100% -10%, #e0d6cc 0%, transparent 60%),
-    radial-gradient(900px 500px at -10% 0%, #eae2db 0%, transparent 55%);
+  --bg: #fff7ed;
+  --bg-glow: radial-gradient(1100px 600px at 100% -10%, #fed7aa 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, #ffedd5 0%, transparent 55%);
   --surface: #ffffff;
-  --surface-2: #f2ece6;
-  --surface-3: #e8e0d8;
-  --text: #2a231a;
-  --text-soft: #5a5042;
-  --text-faint: #8a8072;
-  --line: #d8cfc4;
-  --brand: #8d6619;
-  --brand-2: #a87a2a;
-  --brand-soft: #f0e6d0;
-  --danger: #b42323;
-  --danger-soft: #fdecea;
-  --warn: #8a6a1f;
-  --warn-soft: #f3ecd8;
-  --ok: #3a6b3a;
-  --ok-soft: #e4efe4;
+  --surface-2: #ffedd5;
+  --surface-3: #fed7aa;
+  --text: #431407;
+  --text-soft: #9a3412;
+  --text-faint: #fb923c;
+  --line: #fed7aa;
+  --brand: #ea580c;
+  --brand-2: #f97316;
+  --brand-soft: #ffedd5;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --ok: #059669;
+  --ok-soft: #d1fae5;
 }
 
 .theme-list {
