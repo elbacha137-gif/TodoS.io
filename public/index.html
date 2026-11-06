@@ -226,7 +226,26 @@
           </label>
 
           <div class="field">
-            <span class="field-label">Delivery method</span>
+            <span class="field-label">Theme</span>
+            <div class="theme-list" id="theme-group" role="radiogroup" aria-label="Theme">
+              <button type="button" class="theme-swatch" data-theme="default" aria-checked="true">
+                <span class="swatch" style="background:linear-gradient(135deg,#6d5efc,#9b6bff)"></span>
+                Default
+              </button>
+              <button type="button" class="theme-swatch" data-theme="theme1" aria-checked="false">
+                <span class="swatch" style="background:linear-gradient(135deg,#371931,#fff3e5)"></span>
+                Rosewood
+              </button>
+              <button type="button" class="theme-swatch" data-theme="theme2" aria-checked="false">
+                <span class="swatch" style="background:linear-gradient(135deg,#342721,#ddc5a3)"></span>
+                Espresso
+              </button>
+              <button type="button" class="theme-swatch" data-theme="theme3" aria-checked="false">
+                <span class="swatch" style="background:linear-gradient(135deg,#8d6619,#ede8e4)"></span>
+                Honey
+              </button>
+            </div>
+          </div>
             <div class="transport-list" id="transport-group" role="radiogroup" aria-label="Delivery method">
               <button type="button" class="transport" data-transport="web3forms" role="radio" aria-checked="true">
                 <span class="transport-name">No password <span class="pill">easiest</span></span>

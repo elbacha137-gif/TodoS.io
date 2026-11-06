@@ -9,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   todos: [],
-  settings: { leadHours: 48, transport: 'web3forms', email: '', smtp: {}, hasWeb3FormsKey: false },
+  settings: { leadHours: 48, transport: 'web3forms', email: '', smtp: {}, hasWeb3FormsKey: false, theme: 'default' },
   meta: {},
   locked: false,
 };
@@ -21,6 +21,17 @@ let toastTimer = null;
 
 const DAY = 86400000;
 const HOUR = 3600000;
+
+function applyTheme(theme) {
+  const value = theme && theme !== 'default' ? theme : '';
+  if (value) document.documentElement.dataset.theme = value;
+  else delete document.documentElement.dataset.theme;
+  try {
+    localStorage.setItem('todo-theme', theme || 'default');
+  } catch {
+    /* ignore */
+  }
+}
 
 /* ------------------------------- helpers -------------------------------- */
 
@@ -197,6 +208,7 @@ async function submitLock(event) {
       state.settings = data.state.settings;
       state.meta = data.state.meta;
       render();
+      applyTheme(state.settings.theme || 'default');
     } else {
       await refresh();
     }
@@ -421,6 +433,7 @@ async function refresh(showError = false) {
     state.settings = data.settings;
     state.meta = data.meta;
     render();
+    applyTheme(state.settings.theme || 'default');
   } catch (err) {
     if (err.status === 401) {
       showLock(false);
@@ -551,9 +564,12 @@ function onLeadUnitChange() {
   syncLeadUnit();
 }
 
+function currentTheme() {
+  return document.querySelector('#theme-group .theme-swatch.is-active')?.dataset.theme || 'default';
+}
+
 function openSettings() {
   const s = state.settings;
-  $('set-email').value = s.email || '';
   const hours = Number(s.leadHours ?? 48);
   const useDays = hours >= 24 && hours % 24 === 0;
   $('set-lead-unit').value = useDays ? 'days' : 'hours';
@@ -563,6 +579,13 @@ function openSettings() {
   $('set-overdue').checked = s.sendOverdue !== false;
   setTransport(s.transport || 'web3forms');
   $('set-account-email').textContent = s.email || state.user?.email || '—';
+
+  for (const btn of document.querySelectorAll('#theme-group .theme-swatch')) {
+    const active = btn.dataset.theme === (s.theme || 'default');
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-checked', String(active));
+  }
+  applyTheme(s.theme || 'default');
 
   $('set-w3f-key').value = '';
   $('set-w3f-key').placeholder = s.hasWeb3FormsKey
@@ -589,10 +612,10 @@ function openSettings() {
 
 function collectSettingsForm() {
   const payload = {
-    email: $('set-email').value.trim(),
     leadHours: (Number($('set-lead').value) || 0) * ($('set-lead-unit').value === 'days' ? 24 : 1),
     sendOverdue: $('set-overdue').checked,
     transport: currentTransport(),
+    theme: currentTheme(),
     smtp: {
       host: $('set-smtp-host').value.trim(),
       port: Number($('set-smtp-port').value) || 465,
@@ -613,12 +636,6 @@ async function saveSettings(event) {
   if (event) event.preventDefault();
   const payload = collectSettingsForm();
 
-  if (!payload.email) {
-    toast('Add the email address that should receive reminders.', 'error');
-    $('set-email').focus();
-    throw new Error('missing email');
-  }
-
   if (payload.transport === 'smtp' && (!payload.smtp.host || !payload.smtp.user)) {
     toast('SMTP needs at least a host and a username.', 'error');
     throw new Error('incomplete smtp');
@@ -632,6 +649,7 @@ async function saveSettings(event) {
   const data = await api('/api/settings', { method: 'PUT', body: payload });
   state.settings = data.settings;
   state.meta = data.state.meta;
+  applyTheme(state.settings.theme || 'default');
   return payload;
 }
 
@@ -721,6 +739,17 @@ function wire() {
     btn.addEventListener('click', () => setTransport(btn.dataset.transport));
   }
 
+  for (const btn of document.querySelectorAll('#theme-group .theme-swatch')) {
+    btn.addEventListener('click', () => {
+      for (const b of document.querySelectorAll('#theme-group .theme-swatch')) {
+        const active = b === btn;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-checked', String(active));
+      }
+      applyTheme(btn.dataset.theme);
+    });
+  }
+
   $('filters').addEventListener('click', (event) => {
     const btn = event.target.closest('.filter');
     if (!btn) return;
@@ -792,6 +821,11 @@ function wire() {
 }
 
 async function boot() {
+  try {
+    applyTheme(localStorage.getItem('todo-theme') || 'default');
+  } catch {
+    /* ignore */
+  }
   wire();
   try {
     const session = await api('/api/session');
@@ -802,6 +836,7 @@ async function boot() {
     state.user = session.user || null;
     hideLock();
     await refresh(true);
+    applyTheme(state.settings.theme || 'default');
   } catch (err) {
     showLock(false);
   }
